@@ -6,12 +6,44 @@ according to the user's specification.
 
 For more information visit:
 https://github.com/tmcclintock/catalog_analysis
+
+Step 1:
+The user must supply a catalog name and a random catalog name corresponding to that 
+catalog. They could also provide a second catalog and random catalog if not than
+a TreeCorr autocorrelation is performed and that's it. If yes then the full
+WL analysis is run.
 """
 
+import os
+
 class catalog_analysis(object):
-    def __init__(self):
-        #TODO
+    """
+    TODO: also allow for passing of a TreeCorr dictionary, some kind of 
+    data structure that will handle flow control, output paths for things,
+    a set of mass bins, and a number of jackknife regions.
+    """
+    def __init__(self,catalog_name,random_name,catalog_name2=None,random_name2=None,\
+                 treecorr_dict=None,flow_control=None,temp_path=None,):
+        self.catalog_name  = catalog_name
+        self.random_name   = random_name
+        self.catalog_name2 = catalog_name2
+        self.random_name2  = random_name2
+        self.treecorr_dict = treecorr_dict
+        self.flow_control  = flow_control
+        self.temp_path     = temp_path
+        return
+
+    def analyze(self):
+        if not os.path.isfile(self.catalog_name):
+            raise Exception("Error: catalog file not found.")
+        if not os.path.isfile(self.random_name):
+            raise Exception("Error: random file not found.")
+        if self.catalog_name2 is not None and not os.path.isfile(self.catalog_name2):
+            raise Exception("Error: catalog2 file not found.")
+        if self.random_name2 is not None and not os.path.isfile(self.random_name2):
+            raise Exception("Error: random2 file not found.")
         return
 
 if __name__ == '__main__':
-    print "TODO"
+    test = catalog_analysis("test_data/test_cat.txt","test_data/test_rand.txt")
+    test.analyze()
