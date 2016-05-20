@@ -34,6 +34,15 @@ class catalog_analysis(object):
         return
 
     def analyze(self):
+        """
+        Parts of this function:
+        1) Do exception handling. Check for file existence,
+        check that the files have data in them.
+        2) Interface with the functions that call TreeCorr.
+        3) Evaluate flow control and figure out if 
+        the WL and/or jackknifing should be calculated.
+        """
+        #Check that the files exist
         if not os.path.isfile(self.catalog_name):
             raise Exception("Error: catalog file not found.")
         if not os.path.isfile(self.random_name):
@@ -42,6 +51,19 @@ class catalog_analysis(object):
             raise Exception("Error: catalog2 file not found.")
         if self.random_name2 is not None and not os.path.isfile(self.random_name2):
             raise Exception("Error: random2 file not found.")
+
+        #Check that the files are non-zero
+        if not os.stat(self.catalog_name).st_size > 0:
+            raise Exception("Error: catalog file empty.")
+        if not os.stat(self.random_name).st_size > 0:
+            raise Exception("Error: random file empty.")
+        if self.catalog_name2 is not None and not os.stat(self.catalog_name2).st_size > 0:
+            raise Exception("Error: catalog2 file empty.")
+        if self.random_name2 is not None and not os.stat(self.random_name2).st_size > 0:
+            raise Exception("Error: random2 file empty.")
+
+        #Interface with TreeCorr
+        #TODO
         return
 
 if __name__ == '__main__':
