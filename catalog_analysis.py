@@ -18,54 +18,80 @@ import os
 
 class catalog_analysis(object):
     """
-    TODO: also allow for passing of a TreeCorr dictionary, some kind of 
-    data structure that will handle flow control, output paths for things,
-    a set of mass bins, and a number of jackknife regions.
+    The object for taking in the catalog and building various quantities from it,
+    including the mass function N(M), the 3D correlation function xi(r),
+    and the weak lensing signal DeltaSigma.
+
+    :dm_cat:
+        The path to the dark matter (DM) catalog.
+
+    :dm_rand:
+        The path to the random catalog for the DM catalog.
+
+    :halo_cat:
+        The path to the halo catalog.
+
+    :halo_rand:
+        The path to the random catalog for the halos.
+
+    :treecorr_dict:
+        A treecorr dictionary for running TreeCorr. This contains
+        all of the information need to construct xi(r).
+
+    :outdir_path:
+        A path to the top-level directory that will contain all outputs.
+        This should have enough storage to store at least 20% of the DM particles
+        used in the original snapshot.
+
+    :debug:
+        An option for printing out diagnostic information.
     """
-    def __init__(self,catalog_name,random_name,catalog_name2=None,random_name2=None,\
-                 treecorr_dict=None,flow_control=None,temp_path=None,):
-        self.catalog_name  = catalog_name
-        self.random_name   = random_name
-        self.catalog_name2 = catalog_name2
-        self.random_name2  = random_name2
+    def __init__(self,dm_cat,dm_rand,halo_cat,halo_rand,\
+                 treecorr_dict=None,outdir_path="./",debug=False):
+        self.dm_cat  = dm_cat
+        self.dm_rand   = dm_rand
+        self.halo_cat = halo_cat
+        self.halo_rand  = halo_rand
         self.treecorr_dict = treecorr_dict
-        self.flow_control  = flow_control
-        self.temp_path     = temp_path
+        self.outdir_path = outdir_path
+        self.debug = debug
         return
 
     def analyze(self):
         """
         Parts of this function:
-        1) Do exception handling. Check for file existence,
+        1. Do exception handling. Check for file existence,
         check that the files have data in them.
-        2) Interface with the functions that call TreeCorr.
-        3) Evaluate flow control and figure out if 
-        the WL and/or jackknifing should be calculated.
+        2. Interface with the functions that call TreeCorr.
         """
         #Check that the files exist
-        if not os.path.isfile(self.catalog_name):
-            raise Exception("Error: catalog file not found.")
-        if not os.path.isfile(self.random_name):
-            raise Exception("Error: random file not found.")
-        if self.catalog_name2 is not None and not os.path.isfile(self.catalog_name2):
-            raise Exception("Error: catalog2 file not found.")
-        if self.random_name2 is not None and not os.path.isfile(self.random_name2):
-            raise Exception("Error: random2 file not found.")
+        if not os.path.isfile(self.dm_cat):
+            raise Exception("Error: DM catalog not found.")
+        if not os.path.isfile(self.dm_rand):
+            raise Exception("Error: DM random catalog not found.")
+        if self.halo_cat is not None and not os.path.isfile(self.halo_cat):
+            raise Exception("Error: halo catalog not found.")
+        if self.halo_rand is not None and not os.path.isfile(self.halo_rand):
+            raise Exception("Error: halo random catalog not found.")
 
         #Check that the files are non-zero
-        if not os.stat(self.catalog_name).st_size > 0:
-            raise Exception("Error: catalog file empty.")
-        if not os.stat(self.random_name).st_size > 0:
-            raise Exception("Error: random file empty.")
-        if self.catalog_name2 is not None and not os.stat(self.catalog_name2).st_size > 0:
-            raise Exception("Error: catalog2 file empty.")
-        if self.random_name2 is not None and not os.stat(self.random_name2).st_size > 0:
-            raise Exception("Error: random2 file empty.")
+        if not os.stat(self.dm_cat).st_size > 0:
+            raise Exception("Error: DM catalog file empty.")
+        if not os.stat(self.dm_rand).st_size > 0:
+            raise Exception("Error: DM random catalog empty.")
+        if self.halo_cat is not None and not os.stat(self.halo_cat).st_size > 0:
+            raise Exception("Error: halo catalog empty.")
+        if self.halo_rand is not None and not os.stat(self.halo_rand).st_size > 0:
+            raise Exception("Error: halo random catalog empty.")
 
-        #Interface with TreeCorr
-        #TODO
-        return
+        #TODO: Call the other objects that do the necessary parts in the algorithm
+
+        return 0
 
 if __name__ == '__main__':
-    test = catalog_analysis("test_data/test_cat.txt","test_data/test_rand.txt")
-    test.analyze()
+    test = catalog_analysis("test_data/test_cat.txt","test_data/test_rand.txt",\
+                                "test_data/test_cat.txt","test_data/test_rand.txt")
+    if not test.analyze():
+        print "Success."
+    else:
+        print "Failure."
