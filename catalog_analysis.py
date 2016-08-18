@@ -22,19 +22,28 @@ class catalog_analysis(object):
     a set of mass bins, and a number of jackknife regions.
     """
     def __init__(self,dm_files,halo_file,
-                 treecorr_dict=None,flow_control=None,out_path="./"):
+                 treecorr_dict=None,flow_control=None,out_path="./",mass_bounds=None):
         """
         dm_files: the base name for the LGADGET DM particle files.
         The files themselves have the extension .0 or .512 on them,
         corresponding to a jackknifed region (that has a random ordering).
 
         halo_file: the file that contains the halos identified by rockstar.
+
+        treecorr_dict: a dictionary to be used to run treecorr in a customized way
+
+        flow_control: used to leave out any parts of the process
+
+        out_path: a path to the output directory
+
+        mass_bounds: a custom split of halo masses
         """
         self.dm_files      = dm_files
         self.halo_file     = halo_file
         self.treecorr_dict = treecorr_dict
         self.flow_control  = flow_control
         self.out_path      = out_path
+        self.mass_bounds   = mass_bounds
         return
 
     def build_WL_signal(self):
@@ -44,7 +53,8 @@ class catalog_analysis(object):
         self.path_check()
         self.find_simulation_properties()
         self.reorder_jackknifes()
-        #self.sort_halos()
+        #self.filter_halos()
+        self.sort_halos()
         #self.make_randoms()
         #self.run_treecorr()
         #self.resum_correlation_functions()
@@ -54,7 +64,8 @@ class catalog_analysis(object):
     def path_check(self):
         """
         This checks to see if the paths to the dark matter
-        and halo data exist.
+        and halo data exist as well as creates
+        the output path.
         """
         print "Checking DM and halo paths."
         parts = self.dm_files.split("/")
@@ -71,6 +82,13 @@ class catalog_analysis(object):
         if not os.path.exists(self.halo_file):
             raise Exception("halo files don't exst.")
         print "\tDM and halo paths exist."
+
+        print "Creating output directory."
+        out_path = self.out_path
+        os.system("mkdir -p %s"%out_path)
+        halo_filename = self.halo_file.split("/")[-1]
+        self.filtered_halo_path = self.out_path+"filtered_%s.txt"%halo_filename
+        print "\tOutput directory created"
         return
 
     def find_simulation_properties(self):
@@ -116,10 +134,58 @@ class catalog_analysis(object):
         print "\tMapping complete on %d files."%N
         return
 
-    def sort_halos(self):
-        out_path = self.out_path
-        
+    def filter_halos(self):
+        """
+        This function takes in the halo catalog and filters out the halos
+        that are either subhalos (pid > -1.0) or aren't massive
+        enouch (Np >= 200).
+        """
+        print "Filtering halo list."
+        data = open(self.halo_file,"r")
+        header = data.readline()
+        outdata = open(self.filtered_halo_path,"w")
+        outdata.write("#M X Y Z\n")
+        for line in data:
+            ID,DID,M,Vmax,Vrms,R200,Rs,Np,x,y,z,vx,vy,vz,pid = [float(item) for item in line.split()]
+            if pid < 0.0 and Np >= 200:
+                outdata.write("%e %e %e %e\n"%(M,x,y,z))
+        outdata.close()
+        print "\tHalos filtered."
+        return
 
+    def sort_halos(self):
+        """
+        This function takes the filtered halo file and
+        sorts the halos into mass bins.
+        """
+        print "Sorting filtered halos."
+        halos = np.genfromtxt(self.filtered_halo_path)
+        Mass,x,y,z = halos.T
+        lM = np.log10(Mass)
+        if self.mass_bounds is None:
+            Mmin,Mmax,Nbins = min(Mass),max(Mass),3
+            edges = np.linspace(np.log10(Mmin),np.log10(Mmax),Nbins+1)
+            self.mass_bounds = np.array([edges[:-1],edges[1:]]).T
+            np.savetxt(self.out_path+"mass_bound_list.txt",self.mass_bounds)
+            print "\tCreating %d mass bins between %.2e and %.2e"%(Nbins,Mmin,Mmax)
+        outlist = []
+        for i in range(len(self.mass_bounds)):
+            mbs = self.mass_bounds[i]
+            mbs_path = self.out_path+"halos_z%.2f_MB%d.txt"%(self.redshift,i)
+            outlist.append(open(mbs_path,"w"))
+
+        for i in range(len(halos)):
+            for j in range(len(self.mass_bounds)):
+                mbs = self.mass_bounds[j]
+                if lM[i] >= mbs[0] and lM[i]< mbs[1]:
+                    outlist[j].write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
+                    break
+                continue
+            if lM[i] == self.mass_bounds[-1,1]: #The edge case
+                outlist[-1].write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
+        for i in range(len(self.mass_bounds)):
+            outlist[i].close()
+                                                           
 if __name__ == '__main__':
-    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list")
+    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/")
     test.build_WL_signal()
