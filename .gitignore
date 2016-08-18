@@ -1,1 +1,4 @@
 .git/*
+
+test_data/dm_files/*
+test_data/halo_files/*
