@@ -55,6 +55,7 @@ class catalog_analysis(object):
         self.reorder_jackknifes()
         #self.filter_halos()
         self.sort_halos()
+        self.jackknife_halos()
         #self.make_randoms()
         #self.run_treecorr()
         #self.resum_correlation_functions()
@@ -85,7 +86,9 @@ class catalog_analysis(object):
 
         print "Creating output directory."
         out_path = self.out_path
+        self.jk_out_path = self.out_path+"/jackknifed_halos/"
         os.system("mkdir -p %s"%out_path)
+        os.system("mkdir -p %s"%self.jk_out_path)
         halo_filename = self.halo_file.split("/")[-1]
         self.filtered_halo_path = self.out_path+"filtered_%s.txt"%halo_filename
         print "\tOutput directory created"
@@ -185,6 +188,18 @@ class catalog_analysis(object):
                 outlist[-1].write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
         for i in range(len(self.mass_bounds)):
             outlist[i].close()
+        print "\tHalos are now sorted into mass bins."
+        return
+
+    def jackknife_halos(self):
+        """
+        This function takes the sorted halos and
+        jackknifes them based on how many divisions there are
+        in the DM files.
+        """
+        print "Jackknifing halo files."
+        
+        return
                                                            
 if __name__ == '__main__':
     test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/")
