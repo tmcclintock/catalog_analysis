@@ -54,9 +54,9 @@ class catalog_analysis(object):
         self.find_simulation_properties()
         self.reorder_jackknifes()
         #self.filter_halos()
-        self.sort_halos()
-        self.jackknife_halos()
-        #self.make_randoms()
+        #self.sort_halos()
+        #self.jackknife_halos()
+        self.make_randoms()
         #self.run_treecorr()
         #self.resum_correlation_functions()
         #self.build_delta_sigmas()
@@ -198,9 +198,45 @@ class catalog_analysis(object):
         in the DM files.
         """
         print "Jackknifing halo files."
-        
+        side = self.side_length
+        ndivs = self.ndm_ndivs
+        step = side/ndivs
+        outpath = self.jk_out_path
+        for i in range(len(self.mass_bounds)):
+            mbs_dirname = "jackknifed_halos_z%.2f_MB%d/"%(self.redshift,i)
+            os.system("mkdir -p %s"%(outpath+mbs_dirname))
+            
+            #Read in the halos
+            halos = np.genfromtxt(self.out_path+"halos_z%.2f_MB%d.txt"%(self.redshift,i))
+            M,x,y,z = halos.T
+            xi = np.floor(x/step)
+            yi = np.floor(y/step)
+            zi = np.floor(z/step)
+            jkindices = zi + ndivs*yi + ndivs*ndivs*xi
+
+            #Open all of the jackknife files
+            outlist = []
+            for jk in range(self.ndm_jks):
+                outlist.append(open(outpath+mbs_dirname+"halos_z%.2f_MB%d_jk%d.txt"%(self.redshift,i,jk),"w"))
+            
+            
+            for jki in range(len(jkindices)):
+                outlist[int(jkindices[jki])].write("%e %e %e %e\n"%(M[jki],x[jki],y[jki],z[jki]))            
+            for jk in range(self.ndm_jks):
+                outlist[jk].close()
+            continue #end i in mass_bounds
+        print "\tHalos are now jackknifed."
         return
-                                                           
+
+    def make_randoms(self):
+        """
+        This function creates the random points used in the
+        correlation function pair counting calculation.
+        """
+        print "Creating random points."
+        
+        print "\tRandom points created."
+        return
 if __name__ == '__main__':
     test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/")
     test.build_WL_signal()
