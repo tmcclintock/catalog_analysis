@@ -17,7 +17,7 @@ import os,sys
 import numpy as np
 import random
 sys.path.insert(0,"src/")
-import reorder_jackknifes, filter_halos, sort_halos
+import reorder_jackknifes, filter_halos, sort_halos, jackknife_halos
 
 class catalog_analysis(object):
     """
@@ -60,7 +60,7 @@ class catalog_analysis(object):
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
         #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
         self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
-        #self.jackknife_halos()
+        jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
         #self.make_randoms()
         #if self.treecorr_dict is None:
         #    self.build_treecorr_dict()
@@ -92,27 +92,22 @@ class catalog_analysis(object):
         print "\tDM and halo paths exist."
 
         print "Creating output directory."
-        out_path = self.out_path
-        self.jk_out_path = self.out_path+"/jackknifed_halos/"
         self.bounded_halo_path = self.out_path+"halos_z%.2f_%.1f_%.1f.txt"
-
-        mbs_base = "jackknifed_halos_z%.2f_MB%d/"
-        self.mbs_base = mbs_base
-        jk_halo_fname = self.jk_out_path+mbs_base+"halos_z%.2f_MB%d_jk%d.txt"
-        self.jk_halo_fname = jk_halo_fname
-
-        out_rand = self.out_path+"/randoms/"
-        self.out_rand = out_rand
-        os.system("mkdir -p %s"%out_path)
+        self.jk_out_path = self.out_path+"/jackknifed_halos/"
+        self.bounded_jk_output_directory_base = self.jk_out_path+"jackknifed_halos_z%.2f_%.1f_%.1f/"
+        self.jk_halo_filename = "halos_z%.2f_%.1f_%.1f_jk%d.txt"
+        self.out_rand_path = self.out_path+"/randoms/"
+        os.system("mkdir -p %s"%self.out_path)
         os.system("mkdir -p %s"%self.jk_out_path)
-        os.system("mkdir -p %s"%out_rand)
+        os.system("mkdir -p %s"%self.out_rand_path)
+
         halo_filename = self.halo_file.split("/")[-1]
         self.filtered_halo_path = self.out_path+"filtered_%s.txt"%halo_filename
         DS = self.down_sampling
         out_dm_name,out_halo_name = "/rand_dm_DS%d.txt"%DS,"/rand_halo_DS%d.txt"%DS
-        self.rand_dm_path, self.rand_halo_path = out_rand+out_dm_name,out_rand+out_halo_name
+        self.rand_dm_path, self.rand_halo_path = self.out_rand_path+out_dm_name,self.out_rand_path+out_halo_name
         
-        cf_jk_out_base = out_path+"/jackknifed_CF/"
+        cf_jk_out_base = self.out_path+"/jackknifed_CF/"
         self.cf_jk_out_base = cf_jk_out_base
         os.system("mkdir -p %s"%cf_jk_out_base)
         cf_MB_singles_jk_out_base = cf_jk_out_base+"/cf_z%.2f_MB%d_singles/"
@@ -139,45 +134,6 @@ class catalog_analysis(object):
         self.redshift = header['redshift']
         self.hubble_const = header['h']
         print "\tSnapshot header read. Simulation properties saved."
-        return
-
-    def jackknife_halos(self):
-        """
-        This function takes the sorted halos and
-        jackknifes them based on how many divisions there are
-        in the DM files.
-        """
-        print "Jackknifing halo files."
-        side = self.side_length
-        ndivs = self.ndm_ndivs
-        step = side/ndivs
-        outpath = self.jk_out_path
-        mbs_base = self.mbs_base
-        halo_jk_fname = self.jk_halo_fname
-        redshift = self.redshift
-        for i in range(len(self.log10_mass_bounds)):
-            mbs_dirname = mbs_base%(self.redshift,i)
-            os.system("mkdir -p %s"%(outpath+mbs_dirname))
-            
-            #Read in the halos
-            halos = np.genfromtxt(self.out_path+"halos_z%.2f_MB%d.txt"%(redshift,i))
-            M,x,y,z = halos.T
-            xi = np.floor(x/step)
-            yi = np.floor(y/step)
-            zi = np.floor(z/step)
-            jkindices = zi + ndivs*yi + ndivs*ndivs*xi
-
-            #Open all of the jackknife files
-            outlist = []
-            for jk in range(self.ndm_jks):
-                outlist.append(open(halo_jk_fname%(redshift,i,redshift,i,self.jk),"w"))
-            
-            for jki in range(len(jkindices)):
-                outlist[int(jkindices[jki])].write("%e %e %e %e\n"%(M[jki],x[jki],y[jki],z[jki]))            
-            for jk in range(self.ndm_jks):
-                outlist[jk].close()
-            continue #end i in mass_bounds
-        print "\tHalos are now jackknifed."
         return
 
     def make_randoms(self):

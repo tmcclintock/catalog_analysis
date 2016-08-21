@@ -17,7 +17,7 @@ def sort_halos(filtered_halo_path,redshift,bounded_halo_path,mass_bounds):
         print "\tCreatingmass bins between %.1f and %.1f"%(lMmin,lMmax)
     Mmin,Mmax = mass_bounds
     lMmin,lMmax = np.log10(mass_bounds)
-    outfile = open(bounded_halo_path%(redshift,Mmin,Mmax),"w")
+    outfile = open(bounded_halo_path%(redshift,lMmin,lMmax),"w")
     for i in range(len(halos)):
         if Mass[i] > Mmin and Mass[i] < Mmax or Mass[i] == Mmin or Mass[i] == Mmax:
             outfile.write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
