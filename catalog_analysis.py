@@ -13,9 +13,11 @@ numpy
 scipy
 """
 
-import os
+import os,sys
 import numpy as np
 import random
+sys.path.insert(0,"src/")
+import reorder_jackknifes, filter_halos
 
 class catalog_analysis(object):
     """
@@ -55,14 +57,14 @@ class catalog_analysis(object):
         """
         self.path_check()
         self.find_simulation_properties()
-        self.reorder_jackknifes()
-        #self.filter_halos()
+        self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
+        filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
         self.sort_halos()
         #self.jackknife_halos()
         #self.make_randoms()
-        if self.treecorr_dict is None:
-            self.build_treecorr_dict()
-        self.run_treecorr()
+        #if self.treecorr_dict is None:
+        #    self.build_treecorr_dict()
+        #self.run_treecorr()
         #self.resum_correlation_functions()
         #self.build_delta_sigmas()
         #self.resum_delta_sigmas()
@@ -131,51 +133,10 @@ class catalog_analysis(object):
         self.side_length = header['boxsize']
         self.dm_count = header['ndm']
         self.ndm_jks = header['nfiles']
+        self.ndm_ndivs = int(round(self.ndm_jks**(1./3.)))
         self.redshift = header['redshift']
         self.hubble_const = header['h']
         print "\tSnapshot header read. Simulation properties saved."
-        return
-
-    def reorder_jackknifes(self):
-        """
-        This reads in the snapshot DM JK files and
-        creates a dictionary that pairs the LGADGET JK number
-        with our ordering.
-        """
-        print "Finding the mapping of LGADGET jackknifes to our jackknifes."
-        import pygadgetreader as pgr
-        N = self.ndm_jks #Number of LGADGET JK files
-        ndivs = int(round(N**(1./3.)))
-        self.ndm_ndivs = ndivs
-        side = self.side_length
-        step = side/ndivs
-        mapping = {}
-        for i in xrange(0,2): #N):
-            pos = pgr.readsnap(self.dm_files+".%d"%i,"pos","dm",single=True,suppress=True)
-            xi,yi,zi = [int(q) for q in np.mean(pos,0)/step]
-            jkindex = zi + ndivs*yi + ndivs*ndivs*xi
-            mapping[jkindex] = i
-        self.mapping = mapping
-        print "\tMapping complete on %d files."%N
-        return
-
-    def filter_halos(self):
-        """
-        This function takes in the halo catalog and filters out the halos
-        that are either subhalos (pid > -1.0) or aren't massive
-        enouch (Np >= 200).
-        """
-        print "Filtering halo list."
-        data = open(self.halo_file,"r")
-        header = data.readline()
-        outdata = open(self.filtered_halo_path,"w")
-        outdata.write("#M X Y Z\n")
-        for line in data:
-            ID,DID,M,Vmax,Vrms,R200,Rs,Np,x,y,z,vx,vy,vz,pid = [float(item) for item in line.split()]
-            if pid < 0.0 and Np >= 200:
-                outdata.write("%e %e %e %e\n"%(M,x,y,z))
-        outdata.close()
-        print "\tHalos filtered."
         return
 
     def sort_halos(self):
