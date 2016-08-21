@@ -17,7 +17,7 @@ import os,sys
 import numpy as np
 import random
 sys.path.insert(0,"src/")
-import reorder_jackknifes, filter_halos
+import reorder_jackknifes, filter_halos, sort_halos
 
 class catalog_analysis(object):
     """
@@ -58,8 +58,8 @@ class catalog_analysis(object):
         self.path_check()
         self.find_simulation_properties()
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
-        filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
-        self.sort_halos()
+        #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
+        self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
         #self.jackknife_halos()
         #self.make_randoms()
         #if self.treecorr_dict is None:
@@ -94,6 +94,8 @@ class catalog_analysis(object):
         print "Creating output directory."
         out_path = self.out_path
         self.jk_out_path = self.out_path+"/jackknifed_halos/"
+        self.bounded_halo_path = self.out_path+"halos_z%.2f_%.1f_%.1f.txt"
+
         mbs_base = "jackknifed_halos_z%.2f_MB%d/"
         self.mbs_base = mbs_base
         jk_halo_fname = self.jk_out_path+mbs_base+"halos_z%.2f_MB%d_jk%d.txt"
@@ -139,41 +141,6 @@ class catalog_analysis(object):
         print "\tSnapshot header read. Simulation properties saved."
         return
 
-    def sort_halos(self):
-        """
-        This function takes the filtered halo file and
-        sorts the halos into mass bins.
-        """
-        print "Sorting filtered halos."
-        halos = np.genfromtxt(self.filtered_halo_path)
-        Mass,x,y,z = halos.T
-        lM = np.log10(Mass)
-        if self.mass_bounds is None:
-            Mmin,Mmax,Nbins = min(Mass),max(Mass),3
-            edges = np.linspace(np.log10(Mmin),np.log10(Mmax),Nbins+1)
-            self.mass_bounds = np.array([edges[:-1],edges[1:]]).T
-            np.savetxt(self.out_path+"mass_bound_list.txt",self.mass_bounds)
-            print "\tCreating %d mass bins between %.2e and %.2e"%(Nbins,Mmin,Mmax)
-        outlist = []
-        for i in range(len(self.mass_bounds)):
-            mbs = self.mass_bounds[i]
-            mbs_path = self.out_path+"halos_z%.2f_MB%d.txt"%(self.redshift,i)
-            outlist.append(open(mbs_path,"w"))
-
-        for i in range(len(halos)):
-            for j in range(len(self.mass_bounds)):
-                mbs = self.mass_bounds[j]
-                if lM[i] >= mbs[0] and lM[i]< mbs[1]:
-                    outlist[j].write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
-                    break
-                continue
-            if lM[i] == self.mass_bounds[-1,1]: #The edge case
-                outlist[-1].write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
-        for i in range(len(self.mass_bounds)):
-            outlist[i].close()
-        print "\tHalos are now sorted into mass bins."
-        return
-
     def jackknife_halos(self):
         """
         This function takes the sorted halos and
@@ -188,7 +155,7 @@ class catalog_analysis(object):
         mbs_base = self.mbs_base
         halo_jk_fname = self.jk_halo_fname
         redshift = self.redshift
-        for i in range(len(self.mass_bounds)):
+        for i in range(len(self.log10_mass_bounds)):
             mbs_dirname = mbs_base%(self.redshift,i)
             os.system("mkdir -p %s"%(outpath+mbs_dirname))
             
@@ -281,7 +248,7 @@ class catalog_analysis(object):
         dm_path = self.dm_files+".%d"
         cf_jk_out_base = self.cf_jk_out_base
         cf_MB_singles_jk_out_base = self.cf_MB_singles_jk_out_base
-        mass_bounds = self.mass_bounds
+        mass_bounds = self.log10_mass_bounds
 
         #Read in the randoms
         rand_dm = np.loadtxt(rand_dm_path)
@@ -322,7 +289,7 @@ class catalog_analysis(object):
                                 rand_halo[:,1] += jj*step #y
                                 rand_halo[:,2] += kk*step #z
 
-                                for mbs_index in range(0,1):#len(mass_bounds)):
+                                for mbs_index in range(0,1):#len(log10_mass_bounds)):
                                     halos = np.atleast_2d(np.loadtxt(jk_halo_fname%(redshift,mbs_index,redshift,mbs_index,halo_jkindex)))
                                     halo_pos = halos[:,1:]
                                     print "\tHalos MB%d jk%d shape:"%(mbs_index,halo_jkindex),halo_pos.shape
