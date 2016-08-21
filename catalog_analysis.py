@@ -18,7 +18,7 @@ import numpy as np
 import random
 sys.path.insert(0,"src/")
 import reorder_jackknifes, filter_halos, sort_halos, jackknife_halos
-import make_randoms
+import make_randoms, treecorr_interface
 
 class catalog_analysis(object):
     """
@@ -59,15 +59,14 @@ class catalog_analysis(object):
         self.path_check()
         self.find_simulation_properties()
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
-        filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
+        #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
         self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
         jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
-        make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
-
+        #make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+        self.treecorr_dict = treecorr_interface.build_treecorr_dict(self.treecorr_dict,self.side_length,self.ndm_ndivs)
         #GOT UP TO HERE
-        #if self.treecorr_dict is None:
-        #    self.build_treecorr_dict()
-        #self.run_treecorr()
+        #treecorr_interface.run_treecorr()
+
         #self.resum_correlation_functions()
         #self.build_delta_sigmas()
         #self.resum_delta_sigmas()
@@ -138,24 +137,6 @@ class catalog_analysis(object):
         self.hubble_const = header['h']
         print "\tSnapshot header read. Simulation properties saved."
         return
-
-    def build_treecorr_dict():
-        """
-        This builds our treecorr dictionary in preparation
-        for running treecorr.
-        """
-        print "Creating treecorr dictionary."
-        N_jks, side, ndivs = self.ndm_jks, self.side_length, self.ndm_ndivs
-        step = side/ndivs
-        config = {}
-        config['nbins'] = 50 # arbitrary
-        config['min_sep'] = 0.1 # Mpc/h
-        config['max_sep'] = 50.0# Mpc/h
-        
-
-        print "\tTreecorr dictionary built."
-        return 
-
 
     def run_treecorr(self):
         """
