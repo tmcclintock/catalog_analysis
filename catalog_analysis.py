@@ -18,6 +18,7 @@ import numpy as np
 import random
 sys.path.insert(0,"src/")
 import reorder_jackknifes, filter_halos, sort_halos, jackknife_halos
+import make_randoms
 
 class catalog_analysis(object):
     """
@@ -58,10 +59,12 @@ class catalog_analysis(object):
         self.path_check()
         self.find_simulation_properties()
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
-        #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
+        filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
         self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
         jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
-        #self.make_randoms()
+        make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+
+        #GOT UP TO HERE
         #if self.treecorr_dict is None:
         #    self.build_treecorr_dict()
         #self.run_treecorr()
@@ -134,33 +137,6 @@ class catalog_analysis(object):
         self.redshift = header['redshift']
         self.hubble_const = header['h']
         print "\tSnapshot header read. Simulation properties saved."
-        return
-
-    def make_randoms(self):
-        """
-        This function creates the random points used in the
-        correlation function pair counting calculation.
-        It is during the treecorr call stage that the individual
-        random segments are translated to the correct jackknife
-        regions
-        """
-        print "Creating random points."
-        DS = self.down_sampling
-        out_dm_name, out_halo_name = self.rand_dm_path, self.rand_halo_path
-        Nparts = self.dm_count
-        N_jks = self.ndm_jks
-        side = self.side_length
-        ndivs = self.ndm_ndivs
-        step = side/ndivs
-        N_dm_jkparts = Nparts/N_jks/DS
-        N_halo_jkparts = N_dm_jkparts/2
-        x,y,z = np.random.random((3,N_dm_jkparts))*step
-        rand_dm = np.array([x,y,z]).T
-        xh,yh,zh = np.random.random((3,N_halo_jkparts))*step
-        rand_halos = np.array([xh,yh,zh]).T
-        np.savetxt(out_dm_name,rand_dm)
-        np.savetxt(out_halo_name,rand_halos)
-        print "\tRandom points created."
         return
 
     def build_treecorr_dict():
