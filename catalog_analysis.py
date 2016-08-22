@@ -57,15 +57,25 @@ class catalog_analysis(object):
         This function calls all of the sub functions.
         """
         self.path_check()
+
         self.find_simulation_properties()
+
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
+
         #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
+
         self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
+
         jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
-        #make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+
+        make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+
         self.treecorr_dict = treecorr_interface.build_treecorr_dict(self.treecorr_dict,self.side_length,self.ndm_ndivs)
+
+        os.system("mkdir -p %s"%self.cf_singles_jk_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
+        treecorr_interface.run_treecorr(self.treecorr_dict,self.dm_files+".%d",self.bounded_jk_output_directory_base+self.jk_halo_filename,self.rand_dm_path,self.rand_halo_path,self.redshift,self.log10_mass_bounds,self.ndm_jks,self.ndm_ndivs,self.side_length,self.down_sampling,self.mapping,self.cf_singles_jk_out_base+self.cf_filename)
+
         #GOT UP TO HERE
-        #treecorr_interface.run_treecorr()
 
         #self.resum_correlation_functions()
         #self.build_delta_sigmas()
@@ -112,8 +122,8 @@ class catalog_analysis(object):
         cf_jk_out_base = self.out_path+"/jackknifed_CF/"
         self.cf_jk_out_base = cf_jk_out_base
         os.system("mkdir -p %s"%cf_jk_out_base)
-        cf_MB_singles_jk_out_base = cf_jk_out_base+"/cf_z%.2f_MB%d_singles/"
-        self.cf_MB_singles_jk_out_base = cf_MB_singles_jk_out_base
+        self.cf_singles_jk_out_base = cf_jk_out_base+"/cf_z%.2f_%.1f_%.1f_singles"
+        self.cf_filename = "/cf_z%.2f_%.1f_%.1f_dmjk%d_halojk%d.txt"
         print "\tOutput directory created"
         return
 
@@ -138,81 +148,7 @@ class catalog_analysis(object):
         print "\tSnapshot header read. Simulation properties saved."
         return
 
-    def run_treecorr(self):
-        """
-        This function takes the DM snapshots and random files and loops 
-        over halo subsets to calculate the halo-matter correlation
-        function, xi(r), as well as the rest of the quantities that come with it.
-
-        Note: this creates the single correlation/cross-correlation files.
-        It does not perform the re-summation to get the leave-one-out (LOO)
-        CFs.
-        """
-        print "Reading in all randoms, dark matter and halo files."
-        import pygadgetreader as pgr
-        import treecorr
-        redshift = self.redshift
-        rand_dm_path, rand_halo_path = self.rand_dm_path, self.rand_halo_path
-        N_jks, side, ndivs = self.ndm_jks, self.side_length, self.ndm_ndivs
-        step = side/ndivs
-        mapping = self.mapping
-        redshift = self.redshift
-        jk_halo_fname = self.jk_halo_fname
-        dm_path = self.dm_files+".%d"
-        cf_jk_out_base = self.cf_jk_out_base
-        cf_MB_singles_jk_out_base = self.cf_MB_singles_jk_out_base
-        mass_bounds = self.log10_mass_bounds
-
-        #Read in the randoms
-        rand_dm = np.loadtxt(rand_dm_path)
-        rand_halo = np.loadtxt(rand_halo_path)
-        print "\tRandom DM shape:",rand_dm.shape
-        print "\tRandom halo shape:",rand_halo.shape
-
-        #Loop over all JK pairs, first loop over the DM indices
-        for i in xrange(0,1):#ndivs):
-            for j in xrange(0,1):#ndivs):
-                for k in xrange(0,1):#ndivs):
-                    unmapped_dm_jkindex = k + ndivs*j + ndivs*ndivs*i
-                    dm_jkindex = mapping[unmapped_dm_jkindex]
-                    dm_parts_all = pgr.readsnap(dm_path%dm_jkindex,"pos","dm",single=True,suppress=True)
-                    DS, Ndm = self.down_sampling, len(dm_parts_all)
-                    fkeep = 1./DS
-                    dm_parts = []
-                    for dmp in range(len(dm_parts_all)):
-                        r = np.random.random()
-                    if r <= fkeep:
-                        dm_parts.append(dm_parts_all[dmp])
-                    dm_parts = np.array(dm_parts)
-                    print "\tDM particles jk%d all/DS:"%dm_jkindex, dm_parts_all.shape, dm_parts.shape
-
-                    #Move the DM randoms
-                    rand_dm[:,0] += i*step #x
-                    rand_dm[:,1] += j*step #y
-                    rand_dm[:,2] += k*step #z
-
-                    #Now loop over halo indices
-                    for ii in xrange(0,1):#ndivs):
-                        for jj in xrange(0,1):#ndivs):
-                            for kk in xrange(0,1):#ndivs):
-                                halo_jkindex = kk + ndivs*jj + ndivs*ndivs*ii
-                                
-                                #Translate the halo randoms over
-                                rand_halo[:,0] += ii*step #x
-                                rand_halo[:,1] += jj*step #y
-                                rand_halo[:,2] += kk*step #z
-
-                                for mbs_index in range(0,1):#len(log10_mass_bounds)):
-                                    halos = np.atleast_2d(np.loadtxt(jk_halo_fname%(redshift,mbs_index,redshift,mbs_index,halo_jkindex)))
-                                    halo_pos = halos[:,1:]
-                                    print "\tHalos MB%d jk%d shape:"%(mbs_index,halo_jkindex),halo_pos.shape
-
-                                    #Set up treecorr catalog
-                                    print "\tInterfacing with TreeCorr to calculate xi(r)."
-                                        #dm_cat = treecorr.Catalog(x=dm_parts[:,0],y=dm_parts[:,1],z=dm_parts[:,2])
-        return
-
 if __name__ == '__main__':
-    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/",down_sampling=10)
+    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/",down_sampling=100)
     test.build_WL_signal()
 
