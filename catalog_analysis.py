@@ -18,7 +18,7 @@ import numpy as np
 import random
 sys.path.insert(0,"src/")
 import reorder_jackknifes, filter_halos, sort_halos, jackknife_halos
-import make_randoms, treecorr_interface
+import make_randoms, treecorr_interface, resum_cf
 
 class catalog_analysis(object):
     """
@@ -68,16 +68,20 @@ class catalog_analysis(object):
 
         jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
 
-        make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+        #make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
 
         self.treecorr_dict = treecorr_interface.build_treecorr_dict(self.treecorr_dict,self.side_length,self.ndm_ndivs)
 
         os.system("mkdir -p %s"%self.cf_singles_jk_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
-        treecorr_interface.run_treecorr(self.treecorr_dict,self.dm_files+".%d",self.bounded_jk_output_directory_base+self.jk_halo_filename,self.rand_dm_path,self.rand_halo_path,self.redshift,self.log10_mass_bounds,self.ndm_jks,self.ndm_ndivs,self.side_length,self.down_sampling,self.mapping,self.cf_singles_jk_out_base+self.cf_filename)
+        #treecorr_interface.run_treecorr(self.treecorr_dict,self.dm_files+".%d",self.bounded_jk_output_directory_base+self.jk_halo_filename,self.rand_dm_path,self.rand_halo_path,self.redshift,self.log10_mass_bounds,self.ndm_jks,self.ndm_ndivs,self.side_length,self.down_sampling,self.mapping,self.cf_singles_jk_out_base+self.cf_filename)
+
+        os.system("mkdir -p %s"%self.cf_resum_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
+        os.system("mkdir -p %s"%self.cf_full_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
+
+        resum_cf.resum_cf(self.cf_singles_jk_out_base+self.cf_filename,self.ndm_jks,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.cf_resum_out_base+self.cf_resum_filename,self.cf_full_out_base+self.cf_full_filename)
 
         #GOT UP TO HERE
 
-        #self.resum_correlation_functions()
         #self.build_delta_sigmas()
         #self.resum_delta_sigmas()
 
@@ -122,8 +126,13 @@ class catalog_analysis(object):
         cf_jk_out_base = self.out_path+"/jackknifed_CF/"
         self.cf_jk_out_base = cf_jk_out_base
         os.system("mkdir -p %s"%cf_jk_out_base)
-        self.cf_singles_jk_out_base = cf_jk_out_base+"/cf_z%.2f_%.1f_%.1f_singles"
+
+        self.cf_singles_jk_out_base = cf_jk_out_base+"/cf_z%.2f_%.1f_%.1f_singles/"
         self.cf_filename = "/cf_z%.2f_%.1f_%.1f_dmjk%d_halojk%d.txt"
+        self.cf_resum_out_base = cf_jk_out_base+"/cf_z%.2f_%.1f_%.1f_resum/"
+        self.cf_resum_filename = "/cf_resum_z%.2f_%.1f_%.1f_jk%d.txt"
+        self.cf_full_out_base  = cf_jk_out_base+"cf_z%.2f_%.1f_%.1f_full/"
+        self.cf_full_filename  = "/cf_full_z%.2f_%.1f_%.1f.txt"
         print "\tOutput directory created"
         return
 
@@ -149,6 +158,6 @@ class catalog_analysis(object):
         return
 
 if __name__ == '__main__':
-    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/",down_sampling=100)
+    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/",down_sampling=10)
     test.build_WL_signal()
 
