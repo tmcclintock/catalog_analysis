@@ -6,3 +6,6 @@ output/*
 
 # Emacs backup files.
 *~
+
+# Python compiled files.
+*.pyc
