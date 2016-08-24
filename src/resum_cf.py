@@ -68,9 +68,5 @@ def resum_cf(cf_singles_input,N_jks,ndivs,redshift,mass_bounds,cf_resum_output_b
         np.savetxt(cf_resum_output_base%(redshift,lMmin,lMmax,redshift,lMmin,lMmax,jkindex),out_LOO)
         continue # end jkindex
 
-    import matplotlib.pyplot as plt
-    plt.loglog(R_full,xi_full)
-    plt.show()
-
     print "\tResummation complete."
     return
