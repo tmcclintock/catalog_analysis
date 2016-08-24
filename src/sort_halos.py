@@ -7,7 +7,7 @@ import numpy as np
 def sort_halos(filtered_halo_path,redshift,bounded_halo_path,mass_bounds):
     print "Sorting filtered halos."
     halos = np.genfromtxt(filtered_halo_path)
-    Mass,x,y,z = halos.T
+    Mass,Rs,x,y,z = halos.T
     lM = np.log10(Mass)
     if mass_bounds is None:
         Mmin,Mmax = min(Mass),max(Mass)
@@ -20,7 +20,7 @@ def sort_halos(filtered_halo_path,redshift,bounded_halo_path,mass_bounds):
     outfile = open(bounded_halo_path%(redshift,lMmin,lMmax),"w")
     for i in range(len(halos)):
         if Mass[i] > Mmin and Mass[i] < Mmax or Mass[i] == Mmin or Mass[i] == Mmax:
-            outfile.write("%e %e %e %e\n"%(Mass[i],x[i],y[i],z[i]))
+            outfile.write("%e %e %e %e %e\n"%(Mass[i],Rs[i],x[i],y[i],z[i]))
     outfile.close()
     print "\tHalos sorted into bins."
     return [mass_bounds, lmb]

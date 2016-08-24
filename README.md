@@ -12,3 +12,11 @@ The algorithm will look like the following:
 4) Use TreeCorr on the jackknife regions to calculate correlation and cross-correlations. Resum these to get full 3D correlation functions.
 
 5) Run the DeltaSigmaBuilder to create DeltaSigma curves for each leave-one-out JK realization. Resum these to get full DeltaSigma curves.
+
+Required modules:
+numpy
+scipy
+matplotlib
+pygadgetreader (By Ryan Thompson)
+treecorr (By Mike Jarvis)
+collossus (By Benedikt Diemer)

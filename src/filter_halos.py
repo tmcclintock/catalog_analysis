@@ -10,11 +10,11 @@ def filter_halos(halo_path,filtered_halo_path):
     data = open(halo_path,"r")
     header = data.readline()
     outdata = open(filtered_halo_path,"w")
-    outdata.write("#M X Y Z\n")
+    outdata.write("#M Rs X Y Z\n")
     for line in data:
         ID,DID,M,Vmax,Vrms,R200,Rs,Np,x,y,z,vx,vy,vz,pid = [float(item) for item in line.split()]
         if pid < 0.0 and Np >= 200:
-            outdata.write("%e %e %e %e\n"%(M,x,y,z))
+            outdata.write("%e %e %e %e %e\n"%(M,Rs,x,y,z))
     outdata.close()
     print "\tHalos filtered."
     return

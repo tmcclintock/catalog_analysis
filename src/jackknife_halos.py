@@ -34,7 +34,7 @@ def jackknife_halos(side_length,ndivs,redshift,log10_mass_bounds,
     os.system("mkdir -p %s"%bounded_jk_output_directory_base%(redshift,lMmin,lMmax))
     step = side_length/ndivs
     halos = np.genfromtxt(bounded_halo_path%(redshift,lMmin,lMmax))
-    M,x,y,z = halos.T
+    M,Rs,x,y,z = halos.T
     xi = np.floor(x/step)
     yi = np.floor(y/step)
     zi = np.floor(z/step)
@@ -42,12 +42,10 @@ def jackknife_halos(side_length,ndivs,redshift,log10_mass_bounds,
 
     outlist = []
     for jk in range(ndivs**3):
-        #print bounded_jk_output_directory_base
-        #print jk_halo_filename
         outlist.append(open(bounded_jk_output_directory_base%(redshift,lMmin,lMmax)+jk_halo_filename%(redshift,lMmin,lMmax,jk),"w"))
     
     for jki in range(len(jkindices)):
-        outlist[int(jkindices[jki])].write("%e %e %e %e\n"%(M[jki],x[jki],y[jki],z[jki]))
+        outlist[int(jkindices[jki])].write("%e %e %e %e %e\n"%(M[jki],Rs[jki],x[jki],y[jki],z[jki]))
 
     for jk in range(ndivs**3):
         outlist[jk].close()

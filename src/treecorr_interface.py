@@ -68,7 +68,8 @@ def run_treecorr(config,dm_base_file_path,halo_base_file_path,
                             rand_halo[:,2] += kk*step #z
 
                             halos = np.atleast_2d(np.loadtxt(halo_base_file_path%(redshift,lMmin,lMmax,redshift,lMmin,lMmax,halo_jkindex)))
-                            halo_pos = halos[:,1:] #Just the positions
+                            #Input data is M Rs X Y Z
+                            halo_pos = halos[:,2:] #Just the positions
                             print halo_pos.shape
 
                             #Perform the actual treecorr analysis
