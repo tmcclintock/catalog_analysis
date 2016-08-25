@@ -19,14 +19,14 @@ import random
 sys.path.insert(0,"src/")
 import reorder_jackknifes, filter_halos, sort_halos, jackknife_halos
 import make_randoms, treecorr_interface, resum_cf
-#import build_delta_sigma
+import build_delta_sigma
 
 class catalog_analysis(object):
     """
     TODO: flow control, output paths for things,
     a set of mass bins, and a number of jackknife regions.
     """
-    def __init__(self,dm_files,halo_file,
+    def __init__(self,dm_files,halo_file,cosmology,
                  treecorr_dict=None,flow_control=None,out_path="./",mass_bounds=None,
                  down_sampling=100):
         """
@@ -46,6 +46,7 @@ class catalog_analysis(object):
         """
         self.dm_files      = dm_files
         self.halo_file     = halo_file
+        self.cosmology     = cosmology
         self.treecorr_dict = treecorr_dict
         self.flow_control  = flow_control
         self.out_path      = out_path
@@ -69,7 +70,7 @@ class catalog_analysis(object):
 
         jackknife_halos.jackknife_halos(self.side_length,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.bounded_halo_path,self.bounded_jk_output_directory_base,self.jk_halo_filename)
 
-        make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
+        #make_randoms.make_randoms(self.down_sampling,self.dm_count,self.ndm_jks,self.side_length,self.ndm_ndivs,self.rand_dm_path,self.rand_halo_path)
 
         #self.treecorr_dict = treecorr_interface.build_treecorr_dict(self.treecorr_dict,self.side_length,self.ndm_ndivs)
 
@@ -79,12 +80,20 @@ class catalog_analysis(object):
         os.system("mkdir -p %s"%self.cf_resum_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
         os.system("mkdir -p %s"%self.cf_full_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
 
-        resum_cf.resum_cf(self.cf_singles_jk_out_base+self.cf_filename,self.ndm_jks,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.cf_resum_out_base+self.cf_resum_filename,self.cf_full_out_base+self.cf_full_filename)
-
-        #GOT UP TO HERE
+        #resum_cf.resum_cf(self.cf_singles_jk_out_base+self.cf_filename,self.ndm_jks,self.ndm_ndivs,self.redshift,self.log10_mass_bounds,self.cf_resum_out_base+self.cf_resum_filename,self.cf_full_out_base+self.cf_full_filename)
 
         os.system("mkdir -p %s"%self.deltasigma_LOO_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
         os.system("mkdir -p %s"%self.deltasigma_full_out_base%(self.redshift,self.log10_mass_bounds[0],self.log10_mass_bounds[1]))
+
+        #GOT UP TO HERE
+        build_delta_sigma.build_delta_sigma(self.cosmology,self.redshift,\
+                                            self.log10_mass_bounds,\
+                                            self.bounded_halo_path,\
+                                            self.bounded_jk_output_directory_base+self.jk_halo_filename,\
+                                            self.cf_full_out_base+self.cf_full_filename,\
+                                            self.cf_resum_out_base+self.cf_resum_filename,\
+                                            self.deltasigma_LOO_out_base+self.deltasigma_LOO_filename,\
+                                            self.deltasigma_full_out_base+self.deltasigma_full_filename)
 
         #self.build_delta_sigmas()
         #self.resum_delta_sigmas()
@@ -168,6 +177,10 @@ class catalog_analysis(object):
         return
 
 if __name__ == '__main__':
-    test = catalog_analysis("test_data/dm_files/snapshot_000","test_data/halo_files/outbgc2_0.list",out_path="./output/",down_sampling=10)
+    cosmo = {"h":0.7,"om":0.3,"ok":0.0,"ode":0.7}
+
+    test = catalog_analysis("test_data/dm_files/snapshot_000",\
+                            "test_data/halo_files/outbgc2_0.list",\
+                            cosmology=cosmo,out_path="./output/",down_sampling=10)
     test.build_WL_signal()
 
