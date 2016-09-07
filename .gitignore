@@ -9,3 +9,7 @@ output/*
 
 # Python compiled files.
 *.pyc
+
+# Compiled c files
+*.o
+*.so

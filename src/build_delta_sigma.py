@@ -18,20 +18,17 @@ import sys
 sys.path.insert(0,"src/delta_sigma_src/wrapper/")
 import Build_Delta_Sigma_Interface
 
-G = 4.517e-48 #Newton's G in Mpc^3/s^2/Solar Mass
-Mpcperkm = 3.241e-20 #Mpc/km used to convert H0 to per seconds
-delta_c = 1.686 #Critical collapse density
-
-#CHANGE THIS FUNCTION TO CALL COLOSSUS
-def calculate_concentration(Rs_array,M_array,cosmology):
-    #for i in range(len(Rs_array)):
-    #    print Rs_array[i],M_array[i]
-    delta = 200.0
-    h,om = cosmology['h'],cosmology['om']
-    H0 = h*100.0
-    rhom = om*3.*(H0*Mpcperkm*H0*Mpcperkm)/(8.*np.pi*G)/(h*h)
-    Rdelta_array = (M_array/(4./3.*np.pi*rhom*delta))**(1./3.)
-    return Rdelta_array/Rs_array #concentration_array
+def calculate_concentration(redshift,M200m,cosmology):
+    from colossus.halo import concentration
+    from colossus.cosmology import cosmology as col_cosmology
+    params = {'flat': True, 'H0': cosmology['h'], 'Om0': cosmology['om'],
+              'Ob0': 1.0-cosmology['om'],
+              'sigma8': cosmology['sigma8'], 'ns': cosmology['ns']}
+    col_cosmology.addCosmology('fiducial_cosmology',params)
+    col_cosmology.setCosmology('fiducial_cosmology')
+    concentration = concentration.concentration(M200m,'200m',redshift,model='diemer15')
+    print "concentration = ",concentration,2.0
+    return 2.0#concentration
 
 def build_delta_sigma(cosmology,redshift,mass_bounds,halo_full_base,\
                       halo_jk_base,cf_full_base,cf_resum_base,\
@@ -42,7 +39,7 @@ def build_delta_sigma(cosmology,redshift,mass_bounds,halo_full_base,\
 
     #First read in the full halo catalogs
     M,Rs,x,y,z = np.genfromtxt(halo_full_base%(redshift,lMmin,lMmax)).T
-    concentration = calculate_concentration(Rs,M,cosmology)
+    concentration = calculate_concentration(redshift,np.mean(M),cosmology)
     mean_mass_full = np.mean(M)
     mean_Rs_full = np.mean(Rs)
     mean_conc_full = np.mean(concentration)
@@ -50,10 +47,22 @@ def build_delta_sigma(cosmology,redshift,mass_bounds,halo_full_base,\
     #Now read in the full CF file
     R_full,DD,RR,DR,RD,xi_full = np.genfromtxt(cf_full_base%(redshift,lMmin,lMmax,redshift,lMmin,lMmax)).T
     
+    
     #Create a dictionary with the input parameters
     input_params = {"Mass":mean_mass_full,"delta":200,\
                     "concentration":mean_conc_full,\
-                    "timing":0,"miscentering":0,}
+                    "timing":1,"miscentering":0,}
+    return_dict_full = Build_Delta_Sigma_Interface.build_Delta_Sigma(R_full.copy(),xi_full.copy(),cosmology,input_params)
+    print return_dict_full.keys()
 
-    return_dict_full = Build_Delta_Sigma_Interface.build_Delta_Sigma(R_full,xi_full,cosmology,input_params)
-    print return_dict.keys()
+    import matplotlib.pyplot as plt
+    R = return_dict_full['R']
+    xi = return_dict_full['xi_hm']
+    sigma_r = return_dict_full['sigma_r']
+    delta_sigma = return_dict_full['delta_sigma']
+    plt.loglog(R,xi)
+    plt.loglog(R,sigma_r)
+    plt.loglog(R,delta_sigma)
+    plt.show()
+
+

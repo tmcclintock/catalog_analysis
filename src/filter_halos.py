@@ -14,7 +14,6 @@ def filter_halos(halo_path,filtered_halo_path):
     for line in data:
         ID,DID,M,Vmax,Vrms,R200,Rs,Np,x,y,z,vx,vy,vz,pid = [float(item) for item in line.split()]
         if pid < 0.0 and Np >= 200:
-            print M,Rs,x,y,z
             outdata.write("%e %e %e %e %e\n"%(M,Rs,x,y,z))
     outdata.close()
     print "\tHalos filtered."

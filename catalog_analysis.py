@@ -64,7 +64,7 @@ class catalog_analysis(object):
 
         self.mapping = reorder_jackknifes.reorder_jackknifes(self.ndm_jks,self.side_length,self.dm_files)
 
-        filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
+        #filter_halos.filter_halos(self.halo_file,self.filtered_halo_path)
 
         self.mass_bounds,self.log10_mass_bounds = sort_halos.sort_halos(self.filtered_halo_path,self.redshift,self.bounded_halo_path,self.mass_bounds)
 
@@ -177,7 +177,7 @@ class catalog_analysis(object):
         return
 
 if __name__ == '__main__':
-    cosmo = {"h":0.7,"om":0.3,"ok":0.0,"ode":0.7}
+    cosmo = {"h":0.7,"om":0.3,"ok":0.0,"ode":0.7,"sigma8":0.8,"ns":0.96}
 
     test = catalog_analysis("test_data/dm_files/snapshot_000",\
                             "test_data/halo_files/outbgc2_0.list",\
